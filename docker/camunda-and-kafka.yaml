@@ -1,0 +1,53 @@
+#
+# Created by MikBac on 07.06.2023
+#
+version: "3.4"
+services:
+  camunda-engine:
+    container_name: camunda-engine
+    image: camunda/camunda-bpm-platform:7.19.0
+    hostname: camunda-engine
+    volumes:
+      - ./../camunda-config/bpm-platform.xml:/camunda/conf/bpm-platform.xml
+      - ./../build/libs/Camunda-engine-plugin-to-dump-event-history-to-kafka.jar:/camunda/lib/camunda-engine-plugin-to-dump-event-history-to-kafka.jar
+    environment:
+      - DB_DRIVER=org.postgresql.Driver
+      - DB_URL=jdbc:postgresql://camunda-db:5432/camunda-engine
+      - DB_USERNAME=camunda
+      - DB_PASSWORD=camunda
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+    ports:
+      - "8080:8080"
+    networks:
+      - camunda-network
+    depends_on:
+      - camunda-db
+  camunda-db:
+    container_name: camunda-db
+    image: postgres:12.1
+    hostname: camunda-db
+    environment:
+      - POSTGRES_USER=camunda
+      - POSTGRES_PASSWORD=camunda
+      - POSTGRES_DB=camunda-engine
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+    volumes:
+      - db-storage:/var/lib/postgresql/data
+    networks:
+      - camunda-network
+
+volumes:
+  db-storage:
+    name: db-storage
+    driver: local
+
+networks:
+  camunda-network:
