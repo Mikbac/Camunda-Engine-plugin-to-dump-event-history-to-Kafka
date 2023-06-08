@@ -3,6 +3,48 @@
 #
 version: "3.4"
 services:
+  kafka-bitnami:
+    image: 'bitnami/kafka:3.4.0'
+    hostname: bitnami-kafka
+    restart: unless-stopped
+    ports:
+      - '9192:9092'
+    volumes:
+      - kafka-storage:/bitnami/kafka
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=EXTERNAL://:9092,CONTROLLER://:9093,INTERNAL://:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      - KAFKA_CFG_ADVERTISED_LISTENERS=EXTERNAL://localhost:9192,INTERNAL://bitnami-kafka:9094
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@bitnami-kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+    networks:
+      - camunda-network
+  kouncil-ui:
+    image: 'consdata/kouncil:1.4'
+    restart: unless-stopped
+    ports:
+      - '9080:8080'
+    environment:
+      - bootstrapServers=bitnami-kafka:9094
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+    networks:
+      - camunda-network
+    depends_on:
+      - kafka-bitnami
   camunda-engine:
     container_name: camunda-engine
     image: camunda/camunda-bpm-platform:7.19.0
@@ -26,6 +68,7 @@ services:
       - camunda-network
     depends_on:
       - camunda-db
+      - kafka-bitnami
   camunda-db:
     container_name: camunda-db
     image: postgres:12.1
@@ -47,6 +90,8 @@ services:
 volumes:
   db-storage:
     name: db-storage
+    driver: local
+  kafka-storage:
     driver: local
 
 networks:

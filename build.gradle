@@ -2,6 +2,12 @@ plugins {
     id 'java'
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
 group = 'pl.mikbac'
 version = '1.0-SNAPSHOT'
 
@@ -10,10 +16,25 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.apache.kafka:kafka-clients:3.4.1'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    compileOnly 'org.camunda.bpm:camunda-engine:7.19.0'
+
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 test {
     useJUnitPlatform()
+}
+
+tasks.register('fatJar', Jar) {
+    archiveFileName = 'Camunda-engine-plugin-to-dump-event-history-to-kafka.jar'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
